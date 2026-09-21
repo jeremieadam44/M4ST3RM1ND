@@ -1,17 +1,39 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import "./App.css";
+import NavBar from "./components/NavBar";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const path = window.location.pathname;
 
   return (
-    <>
-      
-    </>
-  )
+    <AuthProvider>
+      <NavBar />
+      {path === "/login" ? (
+        <Login />
+      ) : path === "/register" ? (
+        <Register />
+      ) : (
+        <ProtectedRoute>
+          <Home />
+        </ProtectedRoute>
+      )}
+    </AuthProvider>
+  );
 }
 
-export default App
+function Home() {
+  const { user, token } = useAuth();
+
+  return (
+    <main>
+      <h1>Bienvenue, {user?.username}</h1>
+      <p>Ta session est active et prête pour les appels API.</p>
+      <p>Token disponible : {token ? "oui" : "non"}</p>
+    </main>
+  );
+}
+
+export default App;
