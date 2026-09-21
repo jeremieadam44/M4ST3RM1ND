@@ -17,8 +17,13 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [status, token]);
 
-  if (status === "loading") return <p>Chargement de la session...</p>;
-  if (status !== "authenticated" || !token) return null;
+  if (status === "loading") {
+    return <p>Chargement de la session...</p>;
+  }
+
+  if (!token) {
+    return null;
+  }
 
   return children;
 }
