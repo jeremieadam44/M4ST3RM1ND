@@ -54,7 +54,10 @@ function gameReducer(
         ...state.gameState.attempts.slice(0, lastIndex),
         lastAttempt,
       ];
-      return { ...state, gameState: {...state.gameState, attempts: updatedAttempt}};
+      return {
+        ...state,
+        gameState: { ...state.gameState, attempts: updatedAttempt },
+      };
     case "SET_STATUS":
       return { ...state, status: action.value };
     default:
@@ -83,4 +86,3 @@ export function useGame() {
   }
   return context;
 }
-
