@@ -90,6 +90,15 @@ export function GameBoard() {
     <div>
       <h1>Partie</h1>
       <p>{state.isMyTurn ? "A vous de jouer" : "En attente de l'adversaire"}</p>
+      <h2>Tentatives Precedentes</h2>
+      {attempts.map((attempt, i) => (
+        <div key={i}>
+          <span>Essais [i + 1] : {attempt.guess.join(",")}</span>
+          {attempt.feedback?.pose && (
+            <span> -> {attempt.feedback.pose.join(",")} </span>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
