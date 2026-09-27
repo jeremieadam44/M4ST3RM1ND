@@ -1,17 +1,23 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import "./App.css";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { GameProvider } from "./context/GameContext";
+import { GameBoard } from "./pages/GameBoard";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      
-    </>
-  )
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path="/test/:gameId"
+          element={
+            <GameProvider>
+              <GameBoard />
+            </GameProvider>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
