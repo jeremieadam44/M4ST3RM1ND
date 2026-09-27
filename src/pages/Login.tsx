@@ -23,45 +23,70 @@ export default function Login() {
     } catch (error) {
       setState("error");
       setMessage(
-        error instanceof Error ? error.message : "Impossible de se connecter.",
+        error instanceof Error
+          ? error.message
+          : "Impossible de se connecter. Vérifie que l’API est démarrée.",
       );
     }
   };
 
   return (
-    <main>
-      <h1>Se connecter</h1>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Pseudo ou e-mail
-          <input
-            type="text"
-            value={identifier}
-            onChange={(event) => setIdentifier(event.target.value)}
-            autoComplete="username"
-            required
-          />
-        </label>
-        <label>
-          Mot de passe
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="current-password"
-            required
-          />
-        </label>
-        {message && (
-          <p role={state === "error" ? "alert" : undefined}>{message}</p>
-        )}
-        <button type="submit" disabled={state === "loading"}>
-          {state === "loading" ? "Connexion..." : "Se connecter"}
-        </button>
-      </form>
-      <p>
-        Pas encore de compte ? <a href="/register">Créer un compte</a>
-      </p>
+    <main className="auth-shell">
+      <section className="auth-card">
+        <div className="auth-header">
+          <span className="auth-kicker">M4ST3RM1ND</span>
+          <h1>Se connecter</h1>
+        </div>
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <label className="auth-field">
+            <span>Adresse e-mail</span>
+            <input
+              type="email"
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
+              autoComplete="email"
+              placeholder="vous@exemple.com"
+              required
+            />
+          </label>
+
+          <label className="auth-field">
+            <span>Mot de passe</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="current-password"
+              placeholder="••••••••"
+              required
+            />
+          </label>
+
+          {message && (
+            <p
+              className={
+                state === "error" ? "auth-status error" : "auth-status success"
+              }
+              role={state === "error" ? "alert" : undefined}
+            >
+              {message}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            className="auth-button"
+            disabled={state === "loading"}
+          >
+            {state === "loading" ? "Connexion..." : "Se connecter"}
+          </button>
+        </form>
+
+        <p className="auth-footer">
+          Pas encore de compte ? <a href="/register">Créer un compte</a>
+        </p>
+      </section>
     </main>
   );
 }

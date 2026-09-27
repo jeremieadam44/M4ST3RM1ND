@@ -5,34 +5,51 @@ export default function NavBar() {
 
   if (status === "loading") {
     return (
-      <header>
-        <a href="/">M4ST3RM1ND</a>
-        <span>Restauration de la session...</span>
+      <header className="topbar">
+        <div className="topbar-inner">
+          <a href="/" className="brand">
+            M4ST3RM1ND
+          </a>
+          <span className="topbar-status">Restauration de la session…</span>
+        </div>
       </header>
     );
   }
 
   if (user) {
     return (
-      <header>
-        <a href="/">M4ST3RM1ND</a>
-        <nav aria-label="Navigation principale">
-          <span>Bonjour, {user.username}</span>
-          <button type="button" onClick={signOut}>
-            Se déconnecter
-          </button>
-        </nav>
+      <header className="topbar">
+        <div className="topbar-inner">
+          <a href="/" className="brand">
+            M4ST3RM1ND
+          </a>
+          <nav aria-label="Navigation principale" className="topbar-nav">
+            <span className="welcome">Bonjour, {user.username}</span>
+            <button type="button" className="logout-button" onClick={signOut}>
+              Se déconnecter
+            </button>
+          </nav>
+        </div>
       </header>
     );
   }
 
   return (
-    <header>
-      <a href="/">M4ST3RM1ND</a>
-      <nav aria-label="Navigation principale">
-        <a href="/login">Se connecter</a>
-        <a href="/register">Créer un compte</a>
-      </nav>
+    <header className="topbar">
+      <div className="topbar-inner">
+        <a href="/" className="brand">
+          M4ST3RM1ND
+        </a>
+        <nav
+          aria-label="Navigation principale"
+          className="topbar-nav topbar-auth-links"
+        >
+          <a href="/login">Se connecter</a>
+          <a href="/register" className="primary-link">
+            Créer un compte
+          </a>
+        </nav>
+      </div>
     </header>
   );
 }

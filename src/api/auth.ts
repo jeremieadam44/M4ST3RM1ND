@@ -1,58 +1,60 @@
-import type { AuthSession, User } from "../types/user";
+import type { AuthSession } from "../types/user";
 
-const USERS_KEY = "m4st3rm1nd.users";
 const SESSION_KEY = "m4st3rm1nd.session";
-
-interface StoredUser extends User {
-  passwordHash: string;
-  salt: string;
-}
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 const getStorage = () =>
   typeof window === "undefined" ? null : window.localStorage;
 
 const normalize = (value: string) => value.trim().toLowerCase();
 
-const readUsers = (): StoredUser[] => {
-  const storage = getStorage();
-  if (!storage) return [];
+const toDisplayName = (email: string, fallback?: string) => {
+  const base = fallback?.trim();
+  if (base && base.length > 0) return base;
 
-  try {
-    const value = storage.getItem(USERS_KEY);
-    return value ? (JSON.parse(value) as StoredUser[]) : [];
-  } catch {
-    return [];
+  const localPart = email.split("@")[0]?.trim();
+  return localPart || "Joueur";
+};
+
+const parseJson = async (response: Response) => {
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      typeof data?.error === "string"
+        ? data.error
+        : "Erreur de connexion à l’API.";
+    throw new Error(message);
   }
+
+  return data;
 };
 
-const bytesToHex = (bytes: Uint8Array) =>
-  Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+const apiRequest = async <T>(
+  path: string,
+  method: string,
+  body?: Record<string, string | undefined | null>,
+) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
 
-const createRandomValue = (size: number) => {
-  const bytes = new Uint8Array(size);
-  crypto.getRandomValues(bytes);
-  return bytesToHex(bytes);
-};
+    const data = await parseJson(response);
+    return data as T;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
 
-const hashPassword = async (password: string, salt: string) => {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"],
-  );
-  const bits = await crypto.subtle.deriveBits(
-    {
-      name: "PBKDF2",
-      salt: new TextEncoder().encode(salt),
-      iterations: 120_000,
-      hash: "SHA-256",
-    },
-    key,
-    256,
-  );
-  return bytesToHex(new Uint8Array(bits));
+    throw new Error(
+      "Le serveur de jeu n’est pas démarré. Lance d’abord le dossier game-server avec deno task dev.",
+    );
+  }
 };
 
 export const getSession = (): AuthSession | null => {
@@ -77,30 +79,26 @@ export const register = async (
   password: string,
 ): Promise<AuthSession> => {
   const normalizedEmail = normalize(email);
-  const normalizedUsername = normalize(username);
-  const users = readUsers();
 
-  if (users.some((user) => user.email === normalizedEmail)) {
-    throw new Error("Cette adresse e-mail est déjà utilisée.");
-  }
-  if (users.some((user) => normalize(user.username) === normalizedUsername)) {
-    throw new Error("Ce pseudo est déjà utilisé.");
-  }
-
-  const salt = createRandomValue(16);
-  const user: StoredUser = {
-    id: createRandomValue(12),
+  const response = await apiRequest<{
+    token: string;
+    user: { id: number; email: string; profilePicture?: string | null };
+  }>("/auth/signup", "POST", {
     email: normalizedEmail,
-    username: username.trim(),
-    passwordHash: await hashPassword(password, salt),
-    salt,
-  };
-  getStorage()?.setItem(USERS_KEY, JSON.stringify([...users, user]));
+    password,
+    username: username.trim() || undefined,
+  });
 
   const session: AuthSession = {
-    user: { id: user.id, email: user.email, username: user.username },
-    token: createRandomValue(32),
+    token: response.token,
+    user: {
+      id: response.user.id,
+      email: response.user.email,
+      username: toDisplayName(response.user.email, username),
+      profilePicture: response.user.profilePicture ?? null,
+    },
   };
+
   saveSession(session);
   return session;
 };
@@ -109,24 +107,26 @@ export const login = async (
   identifier: string,
   password: string,
 ): Promise<AuthSession> => {
-  const normalizedIdentifier = normalize(identifier);
-  const user = readUsers().find(
-    (candidate) =>
-      candidate.email === normalizedIdentifier ||
-      normalize(candidate.username) === normalizedIdentifier,
-  );
+  const email = normalize(identifier);
 
-  if (
-    !user ||
-    (await hashPassword(password, user.salt)) !== user.passwordHash
-  ) {
-    throw new Error("Identifiant ou mot de passe incorrect.");
-  }
+  const response = await apiRequest<{
+    token: string;
+    user: { id: number; email: string; profilePicture?: string | null };
+  }>("/auth/login", "POST", {
+    email,
+    password,
+  });
 
   const session: AuthSession = {
-    user: { id: user.id, email: user.email, username: user.username },
-    token: createRandomValue(32),
+    token: response.token,
+    user: {
+      id: response.user.id,
+      email: response.user.email,
+      username: toDisplayName(response.user.email, identifier),
+      profilePicture: response.user.profilePicture ?? null,
+    },
   };
+
   saveSession(session);
   return session;
 };

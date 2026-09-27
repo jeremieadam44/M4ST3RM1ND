@@ -38,66 +38,92 @@ export default function Register() {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Impossible de créer le compte.",
+          : "Impossible de créer le compte. Vérifie que l’API est démarrée.",
       );
     }
   };
 
   return (
-    <main>
-      <h1>Créer un compte</h1>
-      <form onSubmit={handleSubmit}>
-        <label>
-          E-mail
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-            required
-          />
-        </label>
-        <label>
-          Pseudo
-          <input
-            type="text"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            autoComplete="username"
-            minLength={3}
-            required
-          />
-        </label>
-        <label>
-          Mot de passe
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="new-password"
-            required
-          />
-        </label>
-        <label>
-          Confirmer le mot de passe
-          <input
-            type="password"
-            value={confirmation}
-            onChange={(event) => setConfirmation(event.target.value)}
-            autoComplete="new-password"
-            required
-          />
-        </label>
-        {message && (
-          <p role={state === "error" ? "alert" : undefined}>{message}</p>
-        )}
-        <button type="submit" disabled={state === "loading"}>
-          {state === "loading" ? "Création..." : "Créer mon compte"}
-        </button>
-      </form>
-      <p>
-        Déjà inscrit ? <a href="/login">Se connecter</a>
-      </p>
+    <main className="auth-shell">
+      <section className="auth-card">
+        <div className="auth-header">
+          <span className="auth-kicker">Rejoindre M4ST3RM1ND</span>
+          <h1>Créer un compte</h1>
+        </div>
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <label className="auth-field">
+            <span>E-mail</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+              placeholder="vous@exemple.com"
+              required
+            />
+          </label>
+
+          <label className="auth-field">
+            <span>Pseudo</span>
+            <input
+              type="text"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              autoComplete="username"
+              minLength={3}
+              placeholder="Votre pseudo"
+            />
+          </label>
+
+          <label className="auth-field">
+            <span>Mot de passe</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="new-password"
+              placeholder="Minimum 8 caractères"
+              required
+            />
+          </label>
+
+          <label className="auth-field">
+            <span>Confirmer le mot de passe</span>
+            <input
+              type="password"
+              value={confirmation}
+              onChange={(event) => setConfirmation(event.target.value)}
+              autoComplete="new-password"
+              placeholder="Répétez votre mot de passe"
+              required
+            />
+          </label>
+
+          {message && (
+            <p
+              className={
+                state === "error" ? "auth-status error" : "auth-status success"
+              }
+              role={state === "error" ? "alert" : undefined}
+            >
+              {message}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            className="auth-button"
+            disabled={state === "loading"}
+          >
+            {state === "loading" ? "Création..." : "Créer mon compte"}
+          </button>
+        </form>
+
+        <p className="auth-footer">
+          Déjà inscrit ? <a href="/login">Se connecter</a>
+        </p>
+      </section>
     </main>
   );
 }

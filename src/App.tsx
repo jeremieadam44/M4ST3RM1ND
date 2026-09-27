@@ -28,10 +28,12 @@ function Home() {
   const { user, token } = useAuth();
 
   return (
-    <main>
-      <h1>Bienvenue, {user?.username}</h1>
-      <p>Ta session est active et prête pour les appels API.</p>
-      <p>Token disponible : {token ? "oui" : "non"}</p>
+    <main className="game-screen">
+      <div className="game-content">
+        <h1>Bienvenue, {user?.username}</h1>
+        <p>Ta session est active et prête pour les appels API.</p>
+        <p>Token disponible : {token ? "oui" : "non"}</p>
+      </div>
     </main>
   );
 }

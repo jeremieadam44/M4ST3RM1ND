@@ -1,7 +1,8 @@
 export interface User {
-  id: string;
+  id: string | number;
   email: string;
   username: string;
+  profilePicture?: string | null;
 }
 
 export interface AuthSession {
