@@ -7,7 +7,7 @@ import { isVictoryEasy, isGameOver } from "../game/mastermindLogic";
 import { GameResult } from "./GameResult";
 import type { Color, Tips, EndData } from "../types/mastermind";
 
-import { mockGameStateEasy, mockGameStateGuessTurn } from "../game/mockData"; // import temporaire de dev test
+import { mockGameStateEasy } from "../game/mockData"; // import temporaire de dev test
 
 const COLORS: Color[] = [
   "red",
