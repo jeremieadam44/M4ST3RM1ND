@@ -17,7 +17,7 @@ const COLORS: Color[] = [
   "purple",
 ];
 
-const tips: Tips[] = ["red", "white", "empty"];
+const TIPS: Tips[] = ["red", "white", "empty"];
 
 const CURRENT_USER_ID = 2; // dev data en dur a remove au branchement de l'api
 
@@ -93,12 +93,79 @@ export function GameBoard() {
       <h2>Tentatives Precedentes</h2>
       {attempts.map((attempt, i) => (
         <div key={i}>
-          <span>Essais [i + 1] : {attempt.guess.join(",")}</span>
+          <span>
+            Essais {i + 1} : {attempt.guess.join(",")}
+          </span>
           {attempt.feedback?.pose && (
-            <span> -> {attempt.feedback.pose.join(",")} </span>
+            <span> - {attempt.feedback.pose.join(",")} </span>
           )}
         </div>
       ))}
+
+      {secretNeeded && (
+        <div>
+          <h2>Choisissez votre code secret !</h2>
+          <div>
+            {COLORS.map((c) => (
+              <button
+                key={c}
+                onClick={() => creatSecret(c)}
+                style={{ backgroundColor: c, width: 30, height: 30 }}
+              />
+            ))}
+          </div>
+          <p>Votre code : {secret.join(", ")}</p>
+          <button
+            disabled={secret.length !== mode.guessSpots}
+            onClick={validateSecret}
+          >
+            Valider le code
+          </button>
+        </div>
+      )}
+
+      {state.isMyTurn && !isCodemaker && !waitingForFeddback && (
+        <div>
+          <h2>Votre proposition</h2>
+          <div>
+            {COLORS.map((c) => (
+              <button
+                key={c}
+                onClick={() => guessColor(c)}
+                style={{ backgroundColor: c, width: 30, height: 30 }}
+              />
+            ))}
+          </div>
+          <p>Selection : {guess.join(", ")}</p>
+          <button
+            disabled={guess.length !== mode.guessSpots}
+            onClick={validateGuess}
+          >
+            Valider la Propale
+          </button>
+        </div>
+      )}
+      {state.isMyTurn && isCodemaker && waitingForFeddback && lastAttempt && (
+        <div>
+          <h2>Definissez les indices : {lastAttempt.guess.join(", ")}</h2>
+          <p>Votre code est : {secret ? secret.join(", ") : "introuvable"}</p>
+          <div>
+            {TIPS.map((t) => (
+              <button key={t} onClick={() => advising(t)}>
+                {" "}
+                {t}{" "}
+              </button>
+            ))}
+          </div>
+          <p>Indices : {feedback.join(", ")}</p>
+          <button
+            disabled={feedback.length !== mode.guessSpots}
+            onClick={validteAdvising}
+          >
+            Valider les indices
+          </button>
+        </div>
+      )}
     </div>
   );
 }
