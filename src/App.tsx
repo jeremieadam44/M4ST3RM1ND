@@ -1,22 +1,40 @@
 import "./App.css";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { GameProvider } from "./context/GameContext";
-import { GameBoard } from "./pages/GameBoard";
+import NavBar from "./components/NavBar";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 function App() {
+  const path = window.location.pathname;
+
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/test/:gameId"
-          element={
-            <GameProvider>
-              <GameBoard />
-            </GameProvider>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <NavBar />
+      {path === "/login" ? (
+        <Login />
+      ) : path === "/register" ? (
+        <Register />
+      ) : (
+        <ProtectedRoute>
+          <Home />
+        </ProtectedRoute>
+      )}
+    </AuthProvider>
+  );
+}
+
+function Home() {
+  const { user, token } = useAuth();
+
+  return (
+    <main className="game-screen">
+      <div className="game-content">
+        <h1>Bienvenue, {user?.username}</h1>
+        <p>Ta session est active et prête pour les appels API.</p>
+        <p>Token disponible : {token ? "oui" : "non"}</p>
+      </div>
+    </main>
   );
 }
 
