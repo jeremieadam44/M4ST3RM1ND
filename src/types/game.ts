@@ -1,32 +1,42 @@
-export type GameStatus = 'WAITING' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED' | string
+/** Types calqués sur la forme <Game> renvoyée par le serveur (voir README du game-server). */
 
-export interface GamePlayer {
-	id?: string
-	email?: string
-	username?: string
-	name?: string
+export type GameStatus = "pending" | "started" | "ended";
+
+export interface Player {
+  id: number;
+  email: string;
+  profilePicture: string | null;
 }
 
 export interface Game {
-	id: string
-	status?: GameStatus
-	difficulty?: string
-	currentPlayerId?: string
-	currentTurnUserId?: string
-	turnUserId?: string
-	winnerId?: string | null
-	winner?: GamePlayer | null
-	players?: GamePlayer[]
-	opponent?: GamePlayer | null
-	moves?: number
-	moveCount?: number
-	attempts?: number
-	createdAt?: string
-	finishedAt?: string
-	updatedAt?: string
+  id: number;
+  creatorId: number;
+  minPlayers: number;
+  maxPlayers: number;
+  status: GameStatus;
+  players: Player[];
+  currentTurnUserId: number | null;
+  isYourTurn: boolean;
+  /** Chaîne opaque : notre GameState Mastermind sérialisé en JSON. */
+  state: string;
+  /** Chaîne opaque : notre EndData sérialisé en JSON (null tant que la partie n'est pas finie). */
+  endData: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  endedAt: string | null;
 }
 
 export interface CreateGameInput {
-	difficulty?: string
-	invitedEmails: string[]
+  minPlayers: number;
+  maxPlayers: number;
 }
+
+export interface StartGameInput {
+  state: string;
+  currentTurnUserId: number;
+}
+
+/** Corps de PUT /games/:id/state : soit on passe la main, soit on termine la partie. */
+export type UpdateGameStateInput =
+  | { state: string; currentTurnUserId: number }
+  | { state: string; ended: true; endData: string };

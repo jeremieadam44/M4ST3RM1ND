@@ -12,6 +12,12 @@
   --success-text: #166534;
   --error-bg: #fef2f2;
   --error-text: #b91c1c;
+  --accent: var(--primary);
+  --accent-bg: var(--primary-soft);
+  --accent-border: rgba(79, 70, 229, 0.35);
+  --border: var(--panel-border);
+  --text-h: #0f172a;
+  --heading: inherit;
 
   font-family: "Segoe UI", Inter, system-ui, sans-serif;
   line-height: 1.5;
@@ -287,4 +293,22 @@ p {
 
 .auth-footer a:hover {
   text-decoration: underline;
+}
+
+.topbar .brand {
+  color: #f5f3ff;
+}
+
+.topbar .nav-link {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  padding: 0.4rem 0.2rem;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s ease;
+}
+
+.topbar .nav-link:hover,
+.topbar .nav-link.active {
+  color: #ffffff;
+  border-bottom-color: #a78bfa;
 }

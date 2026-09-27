@@ -1,32 +1,90 @@
-import { useCallback, useEffect, useState } from 'react'
-import { getMyGames } from '../api/game'
-import CreateGameForm from '../components/CreateGameForm'
-import ErrorMessage from '../components/ErrorMessage'
-import Loading from '../components/Loading'
-import type { Game } from '../types/game'
+import { useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { getMyGames } from "../api/game";
+import CreateGameForm from "../components/CreateGameForm";
+import ErrorMessage from "../components/ErrorMessage";
+import Loading from "../components/Loading";
+import { useSession } from "../context/AuthContext";
+import { useAsyncData } from "../hooks/useAsyncData";
+import type { Game } from "../types/game";
 
-interface GameListProps { token: string; userId?: string }
+function turnLabel(game: Game): string {
+  if (game.status === "pending") return "En attente de lancement";
+  if (game.status === "ended") return "Terminée — voir le résultat";
+  return game.isYourTurn ? "C’est votre tour" : "Tour adverse";
+}
 
-function gameLabel(game: Game) { return game.opponent?.name ?? game.opponent?.email ?? `${game.players?.length ?? 0} joueur(s)` }
+export default function GameList() {
+  const { user, token } = useSession();
+  const navigate = useNavigate();
 
-export default function GameList({ token, userId }: GameListProps) {
-	const [games, setGames] = useState<Game[]>([])
-	const [loading, setLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
+  const fetchGames = useCallback(() => getMyGames(token), [token]);
+  const { data: games, loading, error, reload } = useAsyncData(fetchGames);
 
-	const loadGames = useCallback(async () => {
-		setLoading(true); setError(null)
-		try { setGames(await getMyGames(token)) } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Impossible de charger vos parties.') } finally { setLoading(false) }
-	}, [token])
+  const opponentEmail = (game: Game) =>
+    game.players.find((player) => player.id !== user.id)?.email ?? "personne";
 
-	useEffect(() => { void loadGames() }, [loadGames])
-	const openGame = (id: string) => { window.history.pushState({}, '', `/games/${id}`); window.dispatchEvent(new PopStateEvent('popstate')) }
+  const gamePath = (game: Game) =>
+    game.status === "ended" ? `/games/${game.id}/result` : `/games/${game.id}`;
 
-	return <main className="page-shell"><div className="page-title"><div><p className="eyebrow">Mastermind</p><h1>Vos parties</h1><p className="intro">Retrouvez vos parties en cours et lancez une nouvelle invitation.</p></div><span className="count-badge">{games.length} en cours</span></div>
-		<div className="content-grid"><CreateGameForm token={token} onCreated={(game) => setGames((current) => [game, ...current])} />
-			<section className="panel game-panel"><div className="panel-heading"><h2>Parties en cours</h2><button className="icon-button" type="button" onClick={() => void loadGames()} aria-label="Actualiser">↻</button></div>
-				{loading ? <Loading label="Chargement de vos parties..." /> : error ? <ErrorMessage message={error} onRetry={() => void loadGames()} /> : games.length === 0 ? <p className="state-message">Aucune partie en cours.</p> : <div className="game-list">{games.map((game) => { const myTurn = game.currentPlayerId === userId || game.currentTurnUserId === userId || game.turnUserId === userId; return <button className="game-row" key={game.id} type="button" onClick={() => openGame(game.id)}><span className="game-row-main"><strong>Partie #{game.id.slice(0, 8)}</strong><span>avec {gameLabel(game)}</span></span><span className={myTurn ? 'turn-indicator active' : 'turn-indicator'}>{myTurn ? 'C’est votre tour' : 'Tour adverse'}<small>{game.status ?? 'En cours'}</small></span></button> })}</div>}
-			</section>
-		</div>
-	</main>
+  return (
+    <main className="page-shell">
+      <div className="page-title">
+        <div>
+          <p className="eyebrow">Mastermind</p>
+          <h1>Vos parties</h1>
+          <p className="intro">
+            Retrouvez vos parties en cours et lancez une nouvelle invitation.
+          </p>
+        </div>
+        <span className="count-badge">{games?.length ?? 0} en cours</span>
+      </div>
+
+      <div className="content-grid">
+        <CreateGameForm onCreated={(game) => navigate(`/games/${game.id}`)} />
+
+        <section className="panel game-panel">
+          <div className="panel-heading">
+            <h2>Parties en cours</h2>
+            <button
+              className="icon-button"
+              type="button"
+              onClick={() => void reload()}
+              aria-label="Actualiser"
+            >
+              ↻
+            </button>
+          </div>
+
+          {loading ? (
+            <Loading label="Chargement de vos parties..." />
+          ) : error ? (
+            <ErrorMessage message={error} onRetry={() => void reload()} />
+          ) : !games || games.length === 0 ? (
+            <p className="state-message">Aucune partie en cours.</p>
+          ) : (
+            <div className="game-list">
+              {games.map((game) => (
+                <Link className="game-row" key={game.id} to={gamePath(game)}>
+                  <span className="game-row-main">
+                    <strong>Partie #{game.id}</strong>
+                    <span>avec {opponentEmail(game)}</span>
+                  </span>
+                  <span
+                    className={
+                      game.status === "started" && game.isYourTurn
+                        ? "turn-indicator active"
+                        : "turn-indicator"
+                    }
+                  >
+                    {turnLabel(game)}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
+  );
 }

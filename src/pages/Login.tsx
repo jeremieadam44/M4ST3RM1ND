@@ -1,32 +1,32 @@
 import { useState, type FormEvent } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-type SubmissionState = "idle" | "loading" | "error" | "success";
-
 export default function Login() {
-  const { signIn } = useAuth();
-  const [identifier, setIdentifier] = useState("");
+  const { status, signIn } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [state, setState] = useState<SubmissionState>("idle");
-  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (status === "authenticated") return <Navigate to="/games" replace />;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setState("loading");
-    setMessage("");
-
+    setLoading(true);
+    setError(null);
     try {
-      await signIn(identifier, password);
-      setState("success");
-      setMessage("Connexion réussie.");
-      window.setTimeout(() => window.location.assign("/"), 400);
-    } catch (error) {
-      setState("error");
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Impossible de se connecter. Vérifie que l’API est démarrée.",
+      await signIn(email, password);
+      navigate("/games");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Impossible de se connecter.",
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,8 +43,8 @@ export default function Login() {
             <span>Adresse e-mail</span>
             <input
               type="email"
-              value={identifier}
-              onChange={(event) => setIdentifier(event.target.value)}
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
               placeholder="vous@exemple.com"
               required
@@ -63,28 +63,19 @@ export default function Login() {
             />
           </label>
 
-          {message && (
-            <p
-              className={
-                state === "error" ? "auth-status error" : "auth-status success"
-              }
-              role={state === "error" ? "alert" : undefined}
-            >
-              {message}
+          {error && (
+            <p className="auth-status error" role="alert">
+              {error}
             </p>
           )}
 
-          <button
-            type="submit"
-            className="auth-button"
-            disabled={state === "loading"}
-          >
-            {state === "loading" ? "Connexion..." : "Se connecter"}
+          <button type="submit" className="auth-button" disabled={loading}>
+            {loading ? "Connexion..." : "Se connecter"}
           </button>
         </form>
 
         <p className="auth-footer">
-          Pas encore de compte ? <a href="/register">Créer un compte</a>
+          Pas encore de compte ? <Link to="/register">Créer un compte</Link>
         </p>
       </section>
     </main>

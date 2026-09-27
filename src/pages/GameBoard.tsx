@@ -82,9 +82,24 @@ export function GameBoard() {
     return () => clearTimeout(timer);
   }, [dispatch]);
 
-  if (state.status === "loading") return <p>Chargement...</p>;
-  if (state.status === "error") return <p>Une erreur est survenue.</p>;
-  if (!state.gameState) return <p>Aucune partir trouvée.</p>;
+  if (state.status === "loading")
+    return (
+      <main className="page-shell">
+        <section className="game-board">Chargement...</section>
+      </main>
+    );
+  if (state.status === "error")
+    return (
+      <main className="page-shell">
+        <section className="game-board">Une erreur est survenue.</section>
+      </main>
+    );
+  if (!state.gameState)
+    return (
+      <main className="page-shell">
+        <section className="game-board">Aucune partir trouvée.</section>
+      </main>
+    );
   if (endData) {
     return <GameResult endData={endData} currentUserId={CURRENT_USER_ID} />;
   }
@@ -148,122 +163,126 @@ export function GameBoard() {
   }
 
   return (
-    <div>
-      <h1>Partie</h1>
-      <p>{state.isMyTurn ? "A vous de jouer" : "En attente de l'adversaire"}</p>
-      <h2>Tentatives Precedentes</h2>
-      {attempts.map((attempt, i) => (
-        <div
-          key={i}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 12,
-            marginBottom: 8,
-          }}
-        >
-          <span>Essais {i + 1} : </span>
-          {attempt.feedback?.pose && <TipsRow tips={attempt.feedback.pose} />}
-          <ColorRow colors={attempt.guess} />
-        </div>
-      ))}
+    <main className="page-shell">
+      <section className="game-board">
+        <h1>Partie</h1>
+        <p>
+          {state.isMyTurn ? "A vous de jouer" : "En attente de l'adversaire"}
+        </p>
+        <h2>Tentatives Precedentes</h2>
+        {attempts.map((attempt, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              marginBottom: 8,
+            }}
+          >
+            <span>Essais {i + 1} : </span>
+            {attempt.feedback?.pose && <TipsRow tips={attempt.feedback.pose} />}
+            <ColorRow colors={attempt.guess} />
+          </div>
+        ))}
 
-      {secretNeeded && (
-        <div>
-          <h2>Choisissez votre code secret !</h2>
+        {secretNeeded && (
           <div>
-            {COLORS.map((c) => (
-              <button
-                key={c}
-                onClick={() => creatSecret(c)}
-                style={{
-                  backgroundColor: c,
-                  width: 30,
-                  height: 30,
-                  borderRadius: "50%",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              />
-            ))}
+            <h2>Choisissez votre code secret !</h2>
+            <div>
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => creatSecret(c)}
+                  style={{
+                    backgroundColor: c,
+                    width: 30,
+                    height: 30,
+                    borderRadius: "50%",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                />
+              ))}
+            </div>
+            <div>
+              Votre Code : <ColorRow colors={secret} />
+            </div>
+            <button
+              disabled={secret.length !== mode.guessSpots}
+              onClick={validateSecret}
+            >
+              Valider le code
+            </button>
           </div>
-          <div>
-            Votre Code : <ColorRow colors={secret} />
-          </div>
-          <button
-            disabled={secret.length !== mode.guessSpots}
-            onClick={validateSecret}
-          >
-            Valider le code
-          </button>
-        </div>
-      )}
+        )}
 
-      {state.isMyTurn && !isCodemaker && !waitingForFeddback && (
-        <div>
-          <h2>Votre proposition</h2>
+        {state.isMyTurn && !isCodemaker && !waitingForFeddback && (
           <div>
-            {COLORS.map((c) => (
-              <button
-                key={c}
-                onClick={() => guessColor(c)}
-                style={{
-                  backgroundColor: c,
-                  width: 30,
-                  height: 30,
-                  borderRadius: "50%",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              />
-            ))}
+            <h2>Votre proposition</h2>
+            <div>
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => guessColor(c)}
+                  style={{
+                    backgroundColor: c,
+                    width: 30,
+                    height: 30,
+                    borderRadius: "50%",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                />
+              ))}
+            </div>
+            <div>
+              Selection : <ColorRow colors={guess} />
+            </div>
+            <button
+              disabled={guess.length !== mode.guessSpots}
+              onClick={validateGuess}
+            >
+              Valider la Propale
+            </button>
           </div>
+        )}
+        {state.isMyTurn && isCodemaker && waitingForFeddback && lastAttempt && (
           <div>
-            Selection : <ColorRow colors={guess} />
+            <h2>Definissez les indices : {lastAttempt.guess.join(", ")}</h2>
+            <div>
+              Votre code est :{" "}
+              {localSecret ? <ColorRow colors={localSecret} /> : "introuvable"}
+            </div>
+            <div>
+              {TIPS.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => advising(t)}
+                  style={{
+                    backgroundColor: t === "empty" ? "transparent" : t,
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    border: t === "empty" ? "2px solid gray" : "none",
+                    cursor: "pointer",
+                  }}
+                />
+              ))}
+            </div>
+            <div>
+              Indices : <TipsRow tips={feedback} />
+            </div>
+            <button
+              disabled={feedback.length !== mode.guessSpots}
+              onClick={validteAdvising}
+            >
+              Valider les indices
+            </button>
           </div>
-          <button
-            disabled={guess.length !== mode.guessSpots}
-            onClick={validateGuess}
-          >
-            Valider la Propale
-          </button>
-        </div>
-      )}
-      {state.isMyTurn && isCodemaker && waitingForFeddback && lastAttempt && (
-        <div>
-          <h2>Definissez les indices : {lastAttempt.guess.join(", ")}</h2>
-          <p>
-            Votre code est :{" "}
-            {localSecret ? <ColorRow colors={localSecret} /> : "introuvable"}
-          </p>
-          <div>
-            {TIPS.map((t) => (
-              <button
-                key={t}
-                onClick={() => advising(t)}
-                style={{
-                  backgroundColor: t === "empty" ? "transparent" : t,
-                  width: 24,
-                  height: 24,
-                  borderRadius: "50%",
-                  border: t === "empty" ? "2px solid gray" : "none",
-                  cursor: "pointer",
-                }}
-              />
-            ))}
-          </div>
-          <div>
-            Indices : <TipsRow tips={feedback} />
-          </div>
-          <button
-            disabled={feedback.length !== mode.guessSpots}
-            onClick={validteAdvising}
-          >
-            Valider les indices
-          </button>
-        </div>
-      )}
-    </div>
+        )}
+      </section>
+    </main>
   );
 }

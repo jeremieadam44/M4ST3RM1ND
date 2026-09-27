@@ -1,47 +1,51 @@
-import type { CreateGameInput, Game } from '../types/game'
+import type {
+  CreateGameInput,
+  Game,
+  StartGameInput,
+  UpdateGameStateInput,
+} from "../types/game";
+import { apiRequest } from "./client";
 
-const API_URL = import.meta.env.VITE_API_URL ?? '/api'
+export const getMyGames = (token: string) =>
+  apiRequest<Game[]>("/games/mine", { token });
 
-async function request<T>(token: string, path: string, options?: RequestInit): Promise<T> {
-	const response = await fetch(`${API_URL}${path}`, {
-		...options,
-		headers: {
-			Authorization: `Bearer ${token}`,
-			'Content-Type': 'application/json',
-			...options?.headers,
-		},
-	})
+export const getGameHistory = (token: string) =>
+  apiRequest<Game[]>("/games/history", { token });
 
-	if (!response.ok) {
-		let message = `La requête a échoué (${response.status})`
-		try {
-			const body = await response.json() as { message?: string; error?: string }
-			message = body.message ?? body.error ?? message
-		} catch {
-            
-		}
-		throw new Error(message)
-	}
+export const getGame = (token: string, gameId: number) =>
+  apiRequest<Game>(`/games/${gameId}`, { token });
 
-	if (response.status === 204) return undefined as T
-	return response.json() as Promise<T>
-}
+export const createGame = (token: string, input: CreateGameInput) =>
+  apiRequest<Game>("/games", { method: "POST", body: input, token });
 
-function unwrapGames(payload: Game[] | { games?: Game[] }): Game[] {
-	return Array.isArray(payload) ? payload : payload.games ?? []
-}
+export const inviteToGame = (token: string, gameId: number, email: string) =>
+  apiRequest<Game>(`/games/${gameId}/invite`, {
+    method: "POST",
+    body: { email },
+    token,
+  });
 
-export async function getMyGames(token: string): Promise<Game[]> {
-	return unwrapGames(await request<Game[] | { games?: Game[] }>(token, '/games/mine'))
-}
+export const startGame = (
+  token: string,
+  gameId: number,
+  input: StartGameInput,
+) =>
+  apiRequest<Game>(`/games/${gameId}/start`, {
+    method: "POST",
+    body: input,
+    token,
+  });
 
-export async function getGameHistory(token: string): Promise<Game[]> {
-	return unwrapGames(await request<Game[] | { games?: Game[] }>(token, '/games/history'))
-}
+export const updateGameState = (
+  token: string,
+  gameId: number,
+  input: UpdateGameStateInput,
+) =>
+  apiRequest<Game>(`/games/${gameId}/state`, {
+    method: "PUT",
+    body: input,
+    token,
+  });
 
-export async function createGame(token: string, input: CreateGameInput): Promise<Game> {
-	return request<Game>(token, '/games', {
-		method: 'POST',
-		body: JSON.stringify(input),
-	})
-}
+export const markGameSeen = (token: string, gameId: number) =>
+  apiRequest<void>(`/games/${gameId}/seen`, { method: "POST", token });

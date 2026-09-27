@@ -1,136 +1,66 @@
 import type { AuthSession } from "../types/user";
+import { apiRequest } from "./client";
 
 const SESSION_KEY = "m4st3rm1nd.session";
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
-const getStorage = () =>
-  typeof window === "undefined" ? null : window.localStorage;
+interface AuthResponse {
+  token: string;
+  user: { id: number; email: string; profilePicture: string | null };
+}
 
-const normalize = (value: string) => value.trim().toLowerCase();
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-const toDisplayName = (email: string, fallback?: string) => {
-  const base = fallback?.trim();
-  if (base && base.length > 0) return base;
+const toDisplayName = (email: string) => email.split("@")[0] || "Joueur";
 
-  const localPart = email.split("@")[0]?.trim();
-  return localPart || "Joueur";
+const toSession = ({ token, user }: AuthResponse): AuthSession => ({
+  token,
+  user: {
+    id: user.id,
+    email: user.email,
+    username: toDisplayName(user.email),
+    profilePicture: user.profilePicture ?? null,
+  },
+});
+
+const saveSession = (session: AuthSession) => {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 };
 
-const parseJson = async (response: Response) => {
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const message =
-      typeof data?.error === "string"
-        ? data.error
-        : "Erreur de connexion à l’API.";
-    throw new Error(message);
-  }
-
-  return data;
-};
-
-const apiRequest = async <T>(
-  path: string,
-  method: string,
-  body?: Record<string, string | undefined | null>,
-) => {
+export function getSession(): AuthSession | null {
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-
-    const data = await parseJson(response);
-    return data as T;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
-
-    throw new Error(
-      "Le serveur de jeu n’est pas démarré. Lance d’abord le dossier game-server avec deno task dev.",
-    );
-  }
-};
-
-export const getSession = (): AuthSession | null => {
-  const storage = getStorage();
-  if (!storage) return null;
-
-  try {
-    const value = storage.getItem(SESSION_KEY);
+    const value = localStorage.getItem(SESSION_KEY);
     return value ? (JSON.parse(value) as AuthSession) : null;
   } catch {
     return null;
   }
-};
+}
 
-const saveSession = (session: AuthSession) => {
-  getStorage()?.setItem(SESSION_KEY, JSON.stringify(session));
-};
-
-export const register = async (
+export async function register(
   email: string,
-  username: string,
   password: string,
-): Promise<AuthSession> => {
-  const normalizedEmail = normalize(email);
-
-  const response = await apiRequest<{
-    token: string;
-    user: { id: number; email: string; profilePicture?: string | null };
-  }>("/auth/signup", "POST", {
-    email: normalizedEmail,
-    password,
-    username: username.trim() || undefined,
+): Promise<AuthSession> {
+  const response = await apiRequest<AuthResponse>("/auth/signup", {
+    method: "POST",
+    body: { email: normalizeEmail(email), password },
   });
-
-  const session: AuthSession = {
-    token: response.token,
-    user: {
-      id: response.user.id,
-      email: response.user.email,
-      username: toDisplayName(response.user.email, username),
-      profilePicture: response.user.profilePicture ?? null,
-    },
-  };
-
+  const session = toSession(response);
   saveSession(session);
   return session;
-};
+}
 
-export const login = async (
-  identifier: string,
+export async function login(
+  email: string,
   password: string,
-): Promise<AuthSession> => {
-  const email = normalize(identifier);
-
-  const response = await apiRequest<{
-    token: string;
-    user: { id: number; email: string; profilePicture?: string | null };
-  }>("/auth/login", "POST", {
-    email,
-    password,
+): Promise<AuthSession> {
+  const response = await apiRequest<AuthResponse>("/auth/login", {
+    method: "POST",
+    body: { email: normalizeEmail(email), password },
   });
-
-  const session: AuthSession = {
-    token: response.token,
-    user: {
-      id: response.user.id,
-      email: response.user.email,
-      username: toDisplayName(response.user.email, identifier),
-      profilePicture: response.user.profilePicture ?? null,
-    },
-  };
-
+  const session = toSession(response);
   saveSession(session);
   return session;
-};
+}
 
-export const logout = () => {
-  getStorage()?.removeItem(SESSION_KEY);
-};
+export function logout(): void {
+  localStorage.removeItem(SESSION_KEY);
+}
