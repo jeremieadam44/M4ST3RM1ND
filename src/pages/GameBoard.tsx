@@ -3,8 +3,11 @@ import { useParams } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import { GameModeDiff } from "../game/constants";
 import { saveSecret, getSecret } from "../game/secretStorage";
-import type { Color, Tips } from "../types/mastermind";
-import { mockGameStateEasy } from "../game/mockData"; // import temporaire de dev test
+import { isVictoryEasy, isGameOver } from "../game/mastermindLogic";
+import { GameResult } from "./GameResult";
+import type { Color, Tips, EndData } from "../types/mastermind";
+
+import { mockGameStateEasy, mockGameStateGuessTurn } from "../game/mockData"; // import temporaire de dev test
 
 const COLORS: Color[] = [
   "red",
@@ -19,7 +22,47 @@ const COLORS: Color[] = [
 
 const TIPS: Tips[] = ["red", "white", "empty"];
 
-const CURRENT_USER_ID = 2; // dev data en dur a remove au branchement de l'api
+const CURRENT_USER_ID = 1; // dev data en dur a remove au branchement de l'api
+
+function ColorRow({ colors }: { colors: Color[] }) {
+  return (
+    <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+      {colors.map((c, i) => (
+        <span
+          key={i}
+          style={{
+            display: "inline-block",
+            width: 30,
+            height: 30,
+            borderRadius: "50%",
+            backgroundColor: c,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function TipsRow({ tips }: { tips: Tips[] }) {
+  return (
+    <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+      {tips.map((t, i) => (
+        <span
+          key={i}
+          style={{
+            display: "inline-block",
+            width: 24,
+            height: 24,
+            borderRadius: "50%",
+            backgroundColor: t === "empty" ? "transparent" : t,
+            border:
+              t === "empty" ? "2px solid gray" : "1px solid rgba(0,0,0,0.3)",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function GameBoard() {
   const { gameId } = useParams();
@@ -28,6 +71,7 @@ export function GameBoard() {
   const [guess, setGuess] = useState<Color[]>([]);
   const [feedback, setFeedback] = useState<Tips[]>([]);
   const [secret, setSecret] = useState<Color[]>([]);
+  const [endData, setEndData] = useState<EndData | null>(null);
 
   useEffect(() => {
     dispatch({ type: "SET_STATUS", value: "loading" });
@@ -41,6 +85,9 @@ export function GameBoard() {
   if (state.status === "loading") return <p>Chargement...</p>;
   if (state.status === "error") return <p>Une erreur est survenue.</p>;
   if (!state.gameState) return <p>Aucune partir trouvée.</p>;
+  if (endData) {
+    return <GameResult endData={endData} currentUserId={CURRENT_USER_ID} />;
+  }
 
   const { difficulty, attempts, masterId } = state.gameState;
   const mode = GameModeDiff[difficulty];
@@ -81,7 +128,21 @@ export function GameBoard() {
   }
 
   function validteAdvising() {
-    dispatch({ type: "ADD_FEEDBACK", value: { pose: feedback } });
+    if (!lastAttempt || !state.gameState) return;
+
+    const completedFeedback = { pose: feedback };
+    dispatch({ type: "ADD_FEEDBACK", value: completedFeedback });
+
+    const finishedAttempt = { ...lastAttempt, feedback: completedFeedback };
+    const won = isVictoryEasy(finishedAttempt);
+    const lost = !won && isGameOver(state.gameState, mode.maxAttempts);
+
+    if (won || lost) {
+      setEndData({
+        revealedCode: localSecret ?? [],
+        winnerId: won ? state.gameState.guesserId : state.gameState.masterId,
+      });
+    }
     setFeedback([]);
     dispatch({ type: "SET_TURN", value: false });
   }
@@ -92,13 +153,19 @@ export function GameBoard() {
       <p>{state.isMyTurn ? "A vous de jouer" : "En attente de l'adversaire"}</p>
       <h2>Tentatives Precedentes</h2>
       {attempts.map((attempt, i) => (
-        <div key={i}>
-          <span>
-            Essais {i + 1} : {attempt.guess.join(",")}
-          </span>
-          {attempt.feedback?.pose && (
-            <span> - {attempt.feedback.pose.join(",")} </span>
-          )}
+        <div
+          key={i}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 12,
+            marginBottom: 8,
+          }}
+        >
+          <span>Essais {i + 1} : </span>
+          {attempt.feedback?.pose && <TipsRow tips={attempt.feedback.pose} />}
+          <ColorRow colors={attempt.guess} />
         </div>
       ))}
 
@@ -110,11 +177,20 @@ export function GameBoard() {
               <button
                 key={c}
                 onClick={() => creatSecret(c)}
-                style={{ backgroundColor: c, width: 30, height: 30 }}
+                style={{
+                  backgroundColor: c,
+                  width: 30,
+                  height: 30,
+                  borderRadius: "50%",
+                  border: "none",
+                  cursor: "pointer",
+                }}
               />
             ))}
           </div>
-          <p>Votre code : {secret.join(", ")}</p>
+          <div>
+            Votre Code : <ColorRow colors={secret} />
+          </div>
           <button
             disabled={secret.length !== mode.guessSpots}
             onClick={validateSecret}
@@ -132,11 +208,20 @@ export function GameBoard() {
               <button
                 key={c}
                 onClick={() => guessColor(c)}
-                style={{ backgroundColor: c, width: 30, height: 30 }}
+                style={{
+                  backgroundColor: c,
+                  width: 30,
+                  height: 30,
+                  borderRadius: "50%",
+                  border: "none",
+                  cursor: "pointer",
+                }}
               />
             ))}
           </div>
-          <p>Selection : {guess.join(", ")}</p>
+          <div>
+            Selection : <ColorRow colors={guess} />
+          </div>
           <button
             disabled={guess.length !== mode.guessSpots}
             onClick={validateGuess}
@@ -148,16 +233,29 @@ export function GameBoard() {
       {state.isMyTurn && isCodemaker && waitingForFeddback && lastAttempt && (
         <div>
           <h2>Definissez les indices : {lastAttempt.guess.join(", ")}</h2>
-          <p>Votre code est : {secret ? secret.join(", ") : "introuvable"}</p>
+          <p>
+            Votre code est :{" "}
+            {localSecret ? <ColorRow colors={localSecret} /> : "introuvable"}
+          </p>
           <div>
             {TIPS.map((t) => (
-              <button key={t} onClick={() => advising(t)}>
-                {" "}
-                {t}{" "}
-              </button>
+              <button
+                key={t}
+                onClick={() => advising(t)}
+                style={{
+                  backgroundColor: t === "empty" ? "transparent" : t,
+                  width: 24,
+                  height: 24,
+                  borderRadius: "50%",
+                  border: t === "empty" ? "2px solid gray" : "none",
+                  cursor: "pointer",
+                }}
+              />
             ))}
           </div>
-          <p>Indices : {feedback.join(", ")}</p>
+          <div>
+            Indices : <TipsRow tips={feedback} />
+          </div>
           <button
             disabled={feedback.length !== mode.guessSpots}
             onClick={validteAdvising}
