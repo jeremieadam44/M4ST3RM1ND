@@ -27,9 +27,10 @@ export interface GameState {
   difficulty: Difficulty;
   attempts: Attempt[];
   masterId: number;
+  guesserId: number;
 }
 
 export interface EndData {
-	revealedCode: Color[];
-	winnerId: number;
+  revealedCode: Color[];
+  winnerId: number;
 }
