@@ -2,7 +2,6 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Loading from "./Loading";
 
-/** Route "layout" : affiche les routes enfants seulement si l'utilisateur est connecté. */
 export default function ProtectedRoute() {
   const { status } = useAuth();
 

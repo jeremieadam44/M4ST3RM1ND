@@ -1,8 +1,6 @@
 import type { Game } from "../types/game";
 import type { EndData, GameState } from "../types/mastermind";
 
-/** Le serveur stocke state/endData en chaîne : on (dé)sérialise ici, et nulle part ailleurs. */
-
 function safeParse<T>(value: string | null): T | null {
   if (!value) return null;
   try {

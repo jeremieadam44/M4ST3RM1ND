@@ -28,7 +28,6 @@ export default function App() {
             <Route
               path="/games/:gameId"
               element={
-                // Un GameProvider par partie : l'état repart de zéro à chaque partie ouverte.
                 <GameProvider>
                   <GameBoard />
                 </GameProvider>

@@ -442,7 +442,6 @@ button {
   text-decoration: underline;
 }
 
-/* Plateau de jeu : carte claire pour faire ressortir le jeu sur l'image de fond */
 .game-board {
   background: rgba(241, 245, 249, 0.94);
   border: 1px solid var(--border);

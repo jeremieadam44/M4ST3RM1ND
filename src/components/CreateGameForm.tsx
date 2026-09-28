@@ -10,10 +10,6 @@ interface CreateGameFormProps {
   onCreated: (game: Game) => void;
 }
 
-/**
- * Crée une partie en 3 appels : création → invitation → lancement.
- * Le créateur est le codemaker et joue en premier (il choisit le code secret).
- */
 export default function CreateGameForm({ onCreated }: CreateGameFormProps) {
   const { user, token } = useSession();
   const [opponentEmail, setOpponentEmail] = useState("");

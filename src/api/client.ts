@@ -17,7 +17,6 @@ interface RequestOptions {
   token?: string | null;
 }
 
-/** Fonction unique pour tous les appels à l'API : URL, token, JSON et erreurs. */
 export async function apiRequest<T>(
   path: string,
   { method = "GET", body, token }: RequestOptions = {},
