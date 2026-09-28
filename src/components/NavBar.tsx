@@ -29,6 +29,9 @@ export default function NavBar() {
             <NavLink to="/history" className="nav-link">
               Historique
             </NavLink>
+            <NavLink to="/rules" className="nav-link">
+              Règles
+            </NavLink>
             <span className="welcome">Bonjour, {user.username}</span>
             <button
               type="button"

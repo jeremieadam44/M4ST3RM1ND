@@ -1,177 +1,259 @@
 # M4ST3RM1ND
 
-Application de Mastermind multijoueur au tour par tour, développée avec React,
-TypeScript et un serveur REST Deno. Les joueurs créent un compte, s'affrontent
-autour d'un code secret et consultent les résultats de leurs parties.
+Application de Mastermind multijoueur au tour par tour. Le frontend est réalisé
+avec React, TypeScript et Vite. Le backend est un serveur REST Deno utilisant
+SQLite pour les utilisateurs et les parties.
 
-> Projet pédagogique réalisé dans le cadre d'un devoir sur React et TypeScript.
+Le projet est pédagogique et fonctionne en local : le serveur ne connaît pas
+les règles du Mastermind. Il stocke l'état de la partie et son résultat sous
+forme de chaînes JSON gérées par le frontend.
 
 ## Sommaire
 
-- [Le jeu](#le-jeu)
+- [Fonctionnement](#fonctionnement)
 - [Fonctionnalités](#fonctionnalités)
-- [Architecture](#architecture)
-- [Installation et démarrage](#installation-et-démarrage)
-- [API](#api)
-- [Scripts et vérifications](#scripts-et-vérifications)
-- [État de l'intégration](#état-de-lintégration)
+- [Installation](#installation)
+- [Routes frontend](#routes-frontend)
+- [API backend](#api-backend)
+- [Arborescence complète](#arborescence-complète)
+- [Scripts](#scripts)
+- [Limites actuelles](#limites-actuelles)
 - [Sécurité](#sécurité)
 
-## Le jeu
+## Fonctionnement
 
-Une partie oppose deux rôles : le **créateur** choisit une combinaison secrète
-et le **décodeur** tente de la retrouver. Après chaque proposition, le créateur
-indique, pour chaque pion, si la couleur est correcte et bien placée, correcte
-mais mal placée, ou incorrecte.
+Le créateur d'une partie choisit un code secret. Le décodeur propose des
+combinaisons de couleurs et reçoit un indice pour chaque proposition :
 
-| Difficulté | Pions par combinaison | Tentatives maximales |
-| ---------- | --------------------: | -------------------: |
-| Facile     |                     4 |                   12 |
-| Moyenne    |                     6 |                   12 |
-| Difficile  |                     6 |                   10 |
+- rouge : couleur correcte et bien placée ;
+- blanc : couleur correcte mais mal placée ;
+- vide : couleur absente du code.
 
-La palette comprend huit couleurs : rouge, bleu, vert, jaune, cyan, magenta,
-orange et violet. Le décodeur gagne s'il trouve la combinaison avant d'avoir
-épuisé ses tentatives.
+Les difficultés disponibles sont définies dans
+`src/game/constants.ts` :
+
+| Difficulté | Emplacements | Tentatives |
+| ---------- | -----------: | ---------: |
+| Facile     |            4 |         12 |
+| Moyenne    |            6 |         12 |
+| Difficile  |            6 |         10 |
+
+Les huit couleurs disponibles sont `red`, `blue`, `green`, `yellow`, `cyan`,
+`magenta`, `orange` et `purple`.
 
 ## Fonctionnalités
 
-Le projet est composé d'un frontend React et d'un backend indépendant. Le
-serveur fournit l'inscription et la connexion, la création de parties,
-l'invitation de joueurs, le démarrage d'une partie, la gestion du tour, la
-consultation des parties en cours et l'historique des parties terminées.
+- inscription et connexion par email et mot de passe ;
+- restauration de la session frontend ;
+- création d'une partie avec un nombre minimum et maximum de joueurs ;
+- invitation d'un joueur par email ;
+- démarrage d'une partie et gestion du joueur actif ;
+- sauvegarde de l'état Mastermind dans le backend ;
+- affichage des parties en cours et terminées non consultées ;
+- plateau de jeu avec choix des couleurs et validation des tours ;
+- affichage du résultat et de l'historique ;
+- page de règles accessible depuis la navigation ;
+- gestion des chargements et des erreurs réseau.
 
-Le frontend contient les formulaires d'inscription et de connexion, les
-composants de création et de liste des parties, une vue d'historique, une
-première interface de jeu et la logique de base du Mastermind. L'état
-d'authentification et l'état de jeu sont structurés avec la Context API et des
-reducers. Les appels asynchrones prévoient des états de chargement et de gestion
-d'erreur dans les vues concernées.
-
-## Architecture
-
-```text
-M4ST3RM1ND/
-  src/
-    api/          clients HTTP d'authentification et de jeu
-    components/   navigation, formulaires et composants partagés
-    context/      contextes et reducers d'authentification et de partie
-    game/         règles, niveaux de difficulté et stockage du code secret
-    pages/        écrans de connexion, jeu, historique et résultats
-    types/        modèles TypeScript
-
-game-server/
-  auth.ts         inscription, connexion et authentification
-  games.ts        opérations sur les parties et les tours
-  db.ts           accès à SQLite
-  openapi.yaml    contrat OpenAPI du serveur
-```
-
-Le serveur est générique : il connaît les joueurs, le statut d'une partie et
-l'identifiant du joueur dont c'est le tour, mais ne connaît pas les règles du
-Mastermind. Le frontend sérialise l'état du jeu et les résultats en JSON ; le
-backend les stocke comme des chaînes opaques. Lorsqu'un tour est joué, le client
-doit transmettre l'identifiant du joueur suivant.
-
-## Installation et démarrage
+## Installation
 
 ### Prérequis
 
-- Node.js et npm pour le frontend.
-- Deno 2.9 ou supérieur pour le backend, requis par l'utilisation de
-  `node:sqlite`.
+- Node.js et npm pour le frontend ;
+- Deno 2.9 ou supérieur pour le backend, notamment pour `node:sqlite`.
 
-### 1. Démarrer le backend
+### Backend
 
-Dans un premier terminal, depuis le dossier `game-server` :
+Dans un terminal :
 
 ```sh
+cd game-server
 deno task dev
 ```
 
-Le serveur démarre sur `http://localhost:8000`. La base SQLite `game.db` est
-créée au premier lancement. La documentation interactive est disponible sur
-[`http://localhost:8000/docs`](http://localhost:8000/docs), et le contrat brut
-sur [`openapi.yaml`](../game-server/openapi.yaml).
+Le serveur écoute sur `http://localhost:8000`. La base `game.db` est créée
+automatiquement dans `game-server/`.
 
-### 2. Configurer et démarrer le frontend
-
-Dans un second terminal, depuis le dossier `M4ST3RM1ND` :
+Le serveur peut aussi être lancé sans rechargement automatique :
 
 ```sh
+deno task start
+```
+
+### Frontend
+
+Dans un second terminal :
+
+```sh
+cd M4ST3RM1ND
 npm install
 npm run dev
 ```
 
-Le serveur de développement Vite indique l'URL locale, généralement
-`http://localhost:5173`. Créez un fichier `.env.local` à la racine du frontend
-pour pointer vers le backend local :
+Vite affiche généralement l'application sur `http://localhost:5173`.
+
+L'URL du backend peut être configurée dans un fichier `.env.local` placé à la
+racine du frontend :
 
 ```dotenv
 VITE_API_URL=http://localhost:8000
 ```
 
-Cette variable est utilisée par les clients d'authentification et de jeu. Elle
-doit désigner l'origine du serveur, sans ajouter `/api`.
+Si la variable est absente, cette même URL est utilisée par défaut.
 
-## API
+## Routes frontend
 
-Toutes les routes de jeu nécessitent un jeton transmis dans l'en-tête
-`Authorization: Bearer <token>`. L'inscription et la connexion renvoient un
-jeton de session.
+| Route                   | Accès       | Page                         |
+| ----------------------- | ----------- | ---------------------------- |
+| `/login`                | Public      | Connexion                    |
+| `/register`             | Public      | Création de compte           |
+| `/games`                | Authentifié | Liste et création de parties |
+| `/games/:gameId`        | Authentifié | Plateau de jeu               |
+| `/games/:gameId/result` | Authentifié | Résultat d'une partie        |
+| `/history`              | Authentifié | Historique                   |
+| `/rules`                | Authentifié | Règles du Mastermind         |
+| `/`                     | Authentifié | Redirection vers `/games`    |
 
-| Méthode | Route                | Rôle                                                    |
-| ------- | -------------------- | ------------------------------------------------------- |
-| `POST`  | `/auth/signup`       | Créer un compte et ouvrir une session                   |
-| `POST`  | `/auth/login`        | Ouvrir une session                                      |
-| `POST`  | `/games`             | Créer une partie                                        |
-| `POST`  | `/games/{id}/invite` | Inviter un joueur à une partie en attente               |
-| `POST`  | `/games/{id}/start`  | Démarrer la partie et désigner le premier joueur        |
-| `GET`   | `/games/mine`        | Lister ses parties en cours ou terminées non consultées |
-| `GET`   | `/games/{id}`        | Consulter l'état d'une partie                           |
-| `PUT`   | `/games/{id}/state`  | Mettre à jour l'état ou terminer la partie              |
-| `POST`  | `/games/{id}/seen`   | Marquer une partie terminée comme consultée             |
-| `GET`   | `/games/history`     | Consulter l'historique des parties terminées            |
+La barre de navigation affiche les liens des pages principales pour un
+utilisateur connecté. `ProtectedRoute.tsx` redirige les utilisateurs non
+connectés vers `/login`.
 
-Le détail des formats de requête, réponses et erreurs se trouve dans la
-[documentation du backend](../game-server/README.md) et la
-[spécification OpenAPI](../game-server/openapi.yaml).
+## API backend
 
-## Scripts et vérifications
+Toutes les routes suivantes, sauf l'inscription et la connexion, nécessitent
+un en-tête `Authorization: Bearer <token>`.
+
+| Méthode | Route               | Description                           |
+| ------- | ------------------- | ------------------------------------- |
+| `POST`  | `/auth/signup`      | Créer un compte et ouvrir une session |
+| `POST`  | `/auth/login`       | Ouvrir une session                    |
+| `POST`  | `/games`            | Créer une partie                      |
+| `POST`  | `/games/:id/invite` | Inviter un joueur                     |
+| `POST`  | `/games/:id/start`  | Démarrer une partie                   |
+| `GET`   | `/games/mine`       | Lister les parties de l'utilisateur   |
+| `GET`   | `/games/:id`        | Récupérer une partie                  |
+| `PUT`   | `/games/:id/state`  | Mettre à jour ou terminer une partie  |
+| `POST`  | `/games/:id/seen`   | Marquer un résultat comme vu          |
+| `GET`   | `/games/history`    | Récupérer l'historique                |
+
+La documentation détaillée des corps de requête et des réponses se trouve dans
+[`game-server/README.md`](../game-server/README.md), ainsi que dans
+[`game-server/openapi.yaml`](../game-server/openapi.yaml). Une fois le serveur
+lancé, Swagger est disponible sur `http://localhost:8000/docs`.
+
+## Arborescence complète
+
+Les dossiers `node_modules/`, `dist/` et la base SQLite locale ne sont pas du
+code source et ne sont pas inclus dans l'arborescence fonctionnelle.
+
+```text
+M4ST3RM1ND/
+├── index.html                 # Point d'entrée HTML Vite
+├── package.json               # Dépendances et scripts frontend
+├── vite.config.ts             # Configuration Vite
+├── tsconfig.json              # Configuration TypeScript globale
+├── tsconfig.app.json          # TypeScript de l'application
+├── tsconfig.node.json         # TypeScript de la configuration Node
+├── .oxlintrc.json             # Configuration Oxlint
+├── public/
+│   ├── favicon.svg
+│   └── icons.svg
+└── src/
+    ├── main.tsx               # Montage React dans #root
+    ├── App.tsx                # Routeur, providers et routes
+    ├── App.css                # Styles de l'application
+    ├── index.css              # Variables et styles globaux
+    ├── api/
+    │   ├── client.ts          # Client HTTP générique et erreurs API
+    │   ├── auth.ts            # Appels d'inscription et de connexion
+    │   └── game.ts            # Appels liés aux parties
+    ├── assets/
+    │   ├── hero.png           # Image utilisée par les écrans d'authentification
+    │   ├── react.svg
+    │   └── vite.svg
+    ├── components/
+    │   ├── CreateGameForm.tsx # Formulaire de création de partie
+    │   ├── DifficultySelector.tsx
+    │   ├── ErrorMessage.tsx   # Affichage des erreurs et relance
+    │   ├── Loading.tsx        # Affichage du chargement
+    │   ├── NavBar.tsx         # Navigation principale
+    │   └── ProtectedRoute.tsx # Protection des routes authentifiées
+    ├── context/
+    │   ├── AuthContext.tsx    # Session, connexion et déconnexion
+    │   └── GameContext.tsx    # État et reducer d'une partie
+    ├── game/
+    │   ├── constants.ts       # Paramètres par difficulté
+    │   ├── mastermindLogic.ts  # Victoire et fin de partie
+    │   ├── mockData.ts        # Données de démonstration
+    │   ├── secretStorage.ts   # Stockage local du code secret
+    │   └── serialization.ts   # Conversion état/résultat vers JSON
+    ├── hooks/
+    │   └── useAsyncData.ts    # Hook de chargement asynchrone
+    ├── pages/
+    │   ├── GameBoard.tsx      # Plateau et gestion des tours
+    │   ├── GameList.tsx       # Parties de l'utilisateur
+    │   ├── GameResult.tsx     # Présentation d'un résultat
+    │   ├── GameResultPage.tsx  # Page de résultat connectée à l'API
+    │   ├── History.tsx        # Historique des parties
+    │   ├── Login.tsx          # Connexion
+    │   ├── NotFound.tsx       # Route inconnue
+    │   ├── Register.tsx       # Inscription
+    │   └── Rules.tsx          # Règles du jeu
+    └── types/
+        ├── game.ts            # Types correspondant à l'API des parties
+        ├── mastermind.ts      # Types du jeu et de ses couleurs
+        └── user.ts            # Types utilisateur et session
+
+game-server/
+├── main.ts                    # Démarrage du serveur HTTP
+├── http.ts                    # Réponses HTTP, CORS et routage de base
+├── auth.ts                    # Inscription, connexion et tokens
+├── games.ts                   # Création et évolution des parties
+├── db.ts                      # Connexion et requêtes SQLite
+├── docs.ts                    # Service de la documentation OpenAPI
+├── deno.json                  # Tâches Deno
+├── deno.lock                  # Verrouillage des dépendances Deno
+├── openapi.yaml               # Spécification OpenAPI
+├── routes.md                  # Résumé des routes
+└── README.md                  # Documentation détaillée du serveur
+```
+
+## Scripts
 
 Depuis le dossier frontend :
 
 ```sh
-npm run dev       # lancer Vite en développement
-npm run build     # vérifier TypeScript et construire l'application
-npm run lint      # analyser le code avec Oxlint
-npm run preview   # prévisualiser le build de production
+npm run dev       # Serveur Vite de développement
+npm run build     # Vérification TypeScript et build de production
+npm run lint      # Analyse statique avec Oxlint
+npm run preview   # Servir le build de production localement
 ```
 
-Depuis le dossier backend :
+Depuis `game-server/` :
 
 ```sh
-deno task dev     # démarrer avec rechargement automatique
-deno task start   # démarrer sans mode watch
+deno task dev     # Serveur avec rechargement automatique
+deno task start   # Serveur sans mode watch
 ```
 
-## État de l'intégration
+Une vérification complète du frontend peut être effectuée avec :
 
-Les services du backend et plusieurs vues du frontend sont présents, mais le
-parcours multijoueur n'est pas encore intégré de bout en bout. L'application
-principale raccorde actuellement l'inscription, la connexion et une page
-d'accueil protégée ; les vues de parties et d'historique ne sont pas encore
-reliées à cette navigation. Le plateau utilise encore des données de
-démonstration. De plus, le formulaire frontend de création envoie actuellement
-des champs différents de ceux attendus par `POST /games` côté backend.
+```sh
+npm run lint && npm run build
+```
 
-Ces points doivent être alignés avant de considérer le parcours de création,
-d'invitation, de jeu tour par tour et de consultation des résultats comme
-validé.
+## Limites actuelles
+
+- Le backend stocke l'état JSON sans le valider : le frontend reste responsable
+  de la cohérence des règles.
+- Le code secret est conservé localement côté client pour le rôle de créateur.
+- Le parcours de jeu est fonctionnel mais reste un projet pédagogique, sans
+  tests automatisés ni mécanisme anti-triche côté serveur.
+- Les erreurs et certains textes peuvent encore être harmonisés dans les vues.
 
 ## Sécurité
 
-Ce backend est destiné au développement local et à un usage pédagogique. Sa
-configuration CORS autorise toutes les origines et les mots de passe sont
-hashés avec SHA-256 salé, plutôt qu'avec un algorithme dédié tel qu'Argon2 ou
-bcrypt. Ne l'exposez pas tel quel sur un réseau public ou en production.
+Le serveur est prévu pour un usage local. Le CORS est volontairement ouvert et
+les mots de passe sont hashés avec SHA-256 salé, plutôt qu'avec Argon2 ou
+bcrypt. Ne déployez pas cette configuration telle quelle sur un réseau public
+ou en production.
