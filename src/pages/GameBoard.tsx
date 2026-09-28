@@ -300,6 +300,12 @@ export function GameBoard() {
               Votre Code : <ColorRow colors={secret} />
             </div>
             <button
+              onClick={() => setSecret(secret.slice(0, -1))}
+              disabled={secret.length === 0 || sending}
+            >
+              Retirer
+            </button>
+            <button
               disabled={secret.length !== mode.guessSpots || sending}
               onClick={validateSecret}
             >
@@ -331,6 +337,12 @@ export function GameBoard() {
               Selection : <ColorRow colors={guess} />
             </div>
             <button
+              onClick={() => setGuess(guess.slice(0, -1))}
+              disabled={guess.length === 0 || sending}
+            >
+              Retirer
+            </button>
+            <button
               disabled={guess.length !== mode.guessSpots || sending}
               onClick={validateGuess}
             >
@@ -340,12 +352,13 @@ export function GameBoard() {
         )}
         {state.isMyTurn && isCodemaker && waitingForFeddback && lastAttempt && (
           <div>
-            <h2>Definissez les indices : </h2>
-            <ColorRow colors={lastAttempt.guess} />
             <div>
-              Votre code est :{" "}
+              Rappel de votre code :{" "}
               {localSecret ? <ColorRow colors={localSecret} /> : "introuvable"}
             </div>
+
+            <h2>Definissez les indices pour : </h2>
+            <ColorRow colors={lastAttempt.guess} />
             <div>
               {TIPS.map((t) => (
                 <button
@@ -358,6 +371,8 @@ export function GameBoard() {
                     borderRadius: "50%",
                     border: t === "empty" ? "2px solid gray" : "none",
                     cursor: "pointer",
+                    marginTop: 15,
+                    margin: 2,
                   }}
                 />
               ))}
@@ -365,6 +380,12 @@ export function GameBoard() {
             <div>
               Indices : <TipsRow tips={feedback} />
             </div>
+            <button
+              onClick={() => setFeedback(feedback.slice(0, -1))}
+              disabled={feedback.length === 0 || sending}
+            >
+              Retirer
+            </button>
             <button
               disabled={feedback.length !== mode.guessSpots || sending}
               onClick={validteAdvising}
