@@ -18,32 +18,45 @@ forme de chaînes JSON gérées par le frontend.
 - [Arborescence complète](#arborescence-complète)
 - [Scripts](#scripts)
 - [Limites actuelles](#limites-actuelles)
+- [Évolutions prévues](#évolutions-prévues)
 - [Sécurité](#sécurité)
 
 ## Fonctionnement
 
-Le créateur d'une partie choisit un code secret. Le décodeur propose des
-combinaisons de couleurs et reçoit un indice pour chaque proposition :
+Une partie se joue à deux. Le créateur de la partie choisit un code secret. Le
+décodeur propose des combinaisons de couleurs et reçoit un indice pour chaque
+proposition :
 
 - rouge : couleur correcte et bien placée ;
 - blanc : couleur correcte mais mal placée ;
 - vide : couleur absente du code.
 
-Les difficultés disponibles sont définies dans
-`src/game/constants.ts` :
-
-| Difficulté | Emplacements | Tentatives |
-| ---------- | -----------: | ---------: |
-| Facile     |            4 |         12 |
-
+Le code secret comporte 4 emplacements et le décodeur dispose de 12 tentatives.
 Les huit couleurs disponibles sont `red`, `blue`, `green`, `yellow`, `cyan`,
 `magenta`, `orange` et `purple`.
+
+### Jouer à deux en local
+
+Deux comptes sont nécessaires, par exemple `bob@test.com` et
+`marley@test.com`, à créer depuis la page `/register` :
+
+1. Ouvrir l'URL fournie par Vite (par exemple `http://localhost:5173`) dans une
+   fenêtre classique et se connecter avec `bob@test.com`.
+2. Ouvrir **la même URL** dans une fenêtre de **navigation privée** et se
+   connecter avec `marley@test.com`.
+3. Depuis `/games`, le premier joueur crée une partie en invitant le second par
+   son email.
+
+La session est stockée dans le `localStorage` du navigateur : la navigation
+privée permet de garder deux sessions distinctes en parallèle. L'adresse doit
+être strictement identique dans les deux fenêtres (`localhost` et `127.0.0.1`
+ne sont pas considérées comme la même origine).
 
 ## Fonctionnalités
 
 - inscription et connexion par email et mot de passe ;
 - restauration de la session frontend ;
-- création d'une partie avec un nombre minimum et maximum de joueurs ;
+- création d'une partie à deux joueurs ;
 - invitation d'un joueur par email ;
 - démarrage d'une partie et gestion du joueur actif ;
 - sauvegarde de l'état Mastermind dans le backend ;
@@ -57,8 +70,8 @@ Les huit couleurs disponibles sont `red`, `blue`, `green`, `yellow`, `cyan`,
 
 ### Prérequis
 
-- Node.js et npm pour le frontend ;
-- Deno 2.9 ou supérieur pour le backend, notamment pour `node:sqlite`.
+- Deno 2.9 ou supérieur, pour le frontend comme pour le backend (notamment pour
+  `node:sqlite`).
 
 ### Backend
 
@@ -88,9 +101,12 @@ deno install
 deno task dev
 ```
 
-Vite affiche généralement l'application sur `http://127.0.0.1:5173`.
+Vite affiche l'URL de l'application dans le terminal, généralement
+`http://localhost:5173`.
 
-Si la variable est absente, cette même URL est utilisée par défaut.
+Le frontend contacte l'API sur `http://localhost:8000` par défaut. Pour utiliser
+une autre adresse, définir la variable `VITE_API_URL` avant de lancer ou de
+construire le frontend.
 
 ## Routes frontend
 
@@ -141,6 +157,7 @@ code source et ne sont pas inclus dans l'arborescence fonctionnelle.
 M4ST3RM1ND/
 ├── index.html                 # Point d'entrée HTML Vite
 ├── package.json               # Dépendances et scripts frontend
+├── deno.lock                  # Verrouillage des dépendances frontend
 ├── vite.config.ts             # Configuration Vite
 ├── tsconfig.json              # Configuration TypeScript globale
 ├── tsconfig.app.json          # TypeScript de l'application
@@ -159,12 +176,12 @@ M4ST3RM1ND/
     │   ├── auth.ts            # Appels d'inscription et de connexion
     │   └── game.ts            # Appels liés aux parties
     ├── assets/
-    │   ├── hero.png           # Image utilisée par les écrans d'authentification
+    │   ├── hero.png           # Image utilisée pour le background du site
     │   ├── react.svg
     │   └── vite.svg
     ├── components/
     │   ├── CreateGameForm.tsx # Formulaire de création de partie
-    │   ├── DifficultySelector.tsx
+    │   ├── DifficultySelector.tsx # Choix de difficulté (prévu)
     │   ├── ErrorMessage.tsx   # Affichage des erreurs et relance
     │   ├── Loading.tsx        # Affichage du chargement
     │   ├── NavBar.tsx         # Navigation principale
@@ -173,9 +190,8 @@ M4ST3RM1ND/
     │   ├── AuthContext.tsx    # Session, connexion et déconnexion
     │   └── GameContext.tsx    # État et reducer d'une partie
     ├── game/
-    │   ├── constants.ts       # Paramètres par difficulté
-    │   ├── mastermindLogic.ts  # Victoire et fin de partie
-    │   ├── mockData.ts        # Données de démonstration
+    │   ├── constants.ts       # Emplacements et nombre de tentatives
+    │   ├── mastermindLogic.ts # Victoire et fin de partie
     │   ├── secretStorage.ts   # Stockage local du code secret
     │   └── serialization.ts   # Conversion état/résultat vers JSON
     ├── hooks/
@@ -184,7 +200,7 @@ M4ST3RM1ND/
     │   ├── GameBoard.tsx      # Plateau et gestion des tours
     │   ├── GameList.tsx       # Parties de l'utilisateur
     │   ├── GameResult.tsx     # Présentation d'un résultat
-    │   ├── GameResultPage.tsx  # Page de résultat connectée à l'API
+    │   ├── GameResultPage.tsx # Page de résultat connectée à l'API
     │   ├── History.tsx        # Historique des parties
     │   ├── Login.tsx          # Connexion
     │   ├── NotFound.tsx       # Route inconnue
@@ -214,10 +230,10 @@ game-server/
 Depuis le dossier frontend :
 
 ```sh
-npm run dev       # Serveur Vite de développement
-npm run build     # Vérification TypeScript et build de production
-npm run lint      # Analyse statique avec Oxlint
-npm run preview   # Servir le build de production localement
+deno task dev       # Serveur Vite de développement
+deno task build     # Vérification TypeScript et build de production
+deno task lint      # Analyse statique avec Oxlint
+deno task preview   # Servir le build de production localement
 ```
 
 Depuis `game-server/` :
@@ -230,7 +246,7 @@ deno task start   # Serveur sans mode watch
 Une vérification complète du frontend peut être effectuée avec :
 
 ```sh
-npm run lint && npm run build
+deno task lint && deno task build
 ```
 
 ## Limites actuelles
@@ -241,6 +257,27 @@ npm run lint && npm run build
 - Le parcours de jeu est fonctionnel mais reste un projet pédagogique, sans
   tests automatisés ni mécanisme anti-triche côté serveur.
 - Les erreurs et certains textes peuvent encore être harmonisés dans les vues.
+
+## Évolutions prévues
+
+### Choix de la difficulté
+
+Aujourd'hui, toutes les parties se jouent dans un mode unique. À terme, le
+joueur qui crée la partie pourra choisir la difficulté au moment d'inviter le
+second joueur. Plus la difficulté est élevée, plus le code secret a
+d'emplacements et moins le décodeur a de tentatives :
+
+| Difficulté | Emplacements | Tentatives | Statut          |
+| ---------- | -----------: | ---------: | --------------- |
+| Facile     |            4 |         12 | Disponible      |
+| Moyen      |            6 |         12 | Bientôt         |
+| Difficile  |            6 |         10 | Bientôt         |
+
+La base technique est déjà en place : les paramètres de chaque mode sont
+définis dans `src/game/constants.ts` (`GameModeDiff`), la difficulté est
+enregistrée dans l'état de la partie, et le composant
+`src/components/DifficultySelector.tsx` est prêt à être branché sur le
+formulaire de création de partie.
 
 ## Sécurité
 
