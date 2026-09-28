@@ -155,8 +155,6 @@ export function GameBoard() {
     if (!gameId || !state.gameState) return;
     saveSecret(gameId, secret);
     setSending(true);
-    // setSecret([]);
-    // dispatch({ type: "SET_TURN", value: false });
     setActionError(null);
     try {
       await updateGameState(token, id, {
@@ -180,9 +178,6 @@ export function GameBoard() {
   }
 
   async function validateGuess() {
-    // dispatch({ type: "ADD_ATTEMPT", value: { guess: guess } });
-    // setGuess([]);
-    // dispatch({ type: "SET_TURN", value: false });
     if (!state.gameState) return;
     const update = {
       ...state.gameState,
@@ -215,7 +210,6 @@ export function GameBoard() {
     if (!lastAttempt || !state.gameState) return;
 
     const completedFeedback = { pose: feedback };
-    // dispatch({ type: "ADD_FEEDBACK", value: completedFeedback });
     const finishedAttempt = { ...lastAttempt, feedback: completedFeedback };
 
     const attempts = [
@@ -256,7 +250,6 @@ export function GameBoard() {
     } finally {
       setSending(false);
     }
-    // dispatch({ type: "SET_TURN", value: false });
   }
 
   return (

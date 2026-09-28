@@ -8,7 +8,6 @@ import { parseEndData } from "../game/serialization";
 import { useAsyncData } from "../hooks/useAsyncData";
 import { GameResult } from "./GameResult";
 
-/** Page /games/:gameId/result — charge la partie et affiche son résultat. */
 export default function GameResultPage() {
   const { gameId } = useParams<{ gameId: string }>();
   const { user, token } = useSession();
@@ -17,7 +16,6 @@ export default function GameResultPage() {
   const fetchGame = useCallback(() => getGame(token, id), [token, id]);
   const { data: game, loading, error, reload } = useAsyncData(fetchGame);
 
-  // Une fois le résultat affiché, la partie sort de "Mes parties".
   useEffect(() => {
     if (game?.status === "ended") {
       markGameSeen(token, game.id).catch(() => undefined);

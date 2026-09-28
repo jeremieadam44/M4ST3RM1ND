@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getMyGames } from "../api/game";
 import CreateGameForm from "../components/CreateGameForm";
@@ -20,6 +20,11 @@ export default function GameList() {
 
   const fetchGames = useCallback(() => getMyGames(token), [token]);
   const { data: games, loading, error, reload } = useAsyncData(fetchGames);
+
+  useEffect(() => {
+    const interval = setInterval(() => void reload(), 3000);
+    return () => clearInterval(interval);
+  }, [reload]);
 
   const opponentEmail = (game: Game) =>
     game.players.find((player) => player.id !== user.id)?.email ?? "personne";
@@ -56,7 +61,7 @@ export default function GameList() {
             </button>
           </div>
 
-          {loading ? (
+          {loading && !games ? (
             <Loading label="Chargement de vos parties..." />
           ) : error ? (
             <ErrorMessage message={error} onRetry={() => void reload()} />

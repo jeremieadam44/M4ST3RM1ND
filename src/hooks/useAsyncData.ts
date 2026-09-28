@@ -7,10 +7,6 @@ interface AsyncData<T> {
   reload: () => Promise<void>;
 }
 
-/**
- * Charge une donnée asynchrone en gérant chargement et erreur.
- * ⚠️ `fetcher` doit être stable (useCallback), sinon le chargement boucle.
- */
 export function useAsyncData<T>(fetcher: () => Promise<T>): AsyncData<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);

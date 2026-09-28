@@ -7,7 +7,6 @@ import { useSession } from "../context/AuthContext";
 import { parseEndData, parseGameState } from "../game/serialization";
 import { useAsyncData } from "../hooks/useAsyncData";
 
-/** Les dates SQLite ("2026-09-14 12:00:00") sont en UTC. */
 const formatDate = (sqliteDate: string | null) =>
   sqliteDate
     ? new Date(`${sqliteDate.replace(" ", "T")}Z`).toLocaleDateString()
