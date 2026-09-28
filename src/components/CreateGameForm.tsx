@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { createGame, inviteToGame, startGame } from "../api/game";
+import { ApiError } from "../api/client";
+import { createGame, getMyGames, inviteToGame, startGame } from "../api/game";
 import { useSession } from "../context/AuthContext";
 import { serialize } from "../game/serialization";
 import type { Game } from "../types/game";
@@ -31,7 +32,14 @@ export default function CreateGameForm({ onCreated }: CreateGameFormProps) {
     setLoading(true);
     setError(null);
     try {
-      const created = await createGame(token, { minPlayers: 2, maxPlayers: 2 });
+      const myGames = await getMyGames(token);
+      const created =
+        myGames.find(
+          (game) =>
+            game.status === "pending" &&
+            game.creatorId === user.id &&
+            game.players.length === 1,
+        ) ?? (await createGame(token, { minPlayers: 2, maxPlayers: 2 }));
       const withOpponent = await inviteToGame(token, created.id, email);
       const opponent = withOpponent.players.find((p) => p.id !== user.id);
       if (!opponent)
@@ -52,9 +60,11 @@ export default function CreateGameForm({ onCreated }: CreateGameFormProps) {
       onCreated(started);
     } catch (requestError) {
       setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Impossible de créer la partie.",
+        requestError instanceof ApiError && requestError.status === 404
+          ? "Aucun joueur n'est inscrit avec cet email."
+          : requestError instanceof Error
+            ? requestError.message
+            : "Impossible de créer la partie.",
       );
     } finally {
       setLoading(false);

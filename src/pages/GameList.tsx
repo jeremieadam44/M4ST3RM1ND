@@ -19,7 +19,11 @@ export default function GameList() {
   const navigate = useNavigate();
 
   const fetchGames = useCallback(() => getMyGames(token), [token]);
-  const { data: games, loading, error, reload } = useAsyncData(fetchGames);
+  const { data: allGames, loading, error, reload } = useAsyncData(fetchGames);
+
+  const games = allGames?.filter(
+    (game) => !(game.status === "pending" && game.players.length === 1),
+  );
 
   useEffect(() => {
     const interval = setInterval(() => void reload(), 3000);
