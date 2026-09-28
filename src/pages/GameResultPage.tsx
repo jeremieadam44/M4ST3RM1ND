@@ -37,15 +37,22 @@ export default function GameResultPage() {
 
   return (
     <main className="page-shell">
-      {endData ? (
-        <GameResult endData={endData} currentUserId={user.id} />
-      ) : (
-        <ErrorMessage message="Résultat illisible pour cette partie." />
-      )}
-      <p>
-        <Link to="/games">Retour à mes parties</Link> ·{" "}
-        <Link to="/history">Voir l’historique</Link>
-      </p>
+      <section className="game-board">
+        {endData ? (
+          <GameResult endData={endData} currentUserId={user.id} />
+        ) : (
+          <ErrorMessage message="Résultat illisible pour cette partie." />
+        )}
+        <p>
+          <Link to="/games" className="primary-button">
+            Retour à mes parties
+          </Link>{" "}
+          ·{" "}
+          <Link to="/history" className="secondary-button">
+            Voir l’historique
+          </Link>
+        </p>
+      </section>
     </main>
   );
 }

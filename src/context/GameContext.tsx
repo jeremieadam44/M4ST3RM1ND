@@ -1,8 +1,9 @@
-import React, {
+import {
   createContext,
   useContext,
   useReducer,
   type ReactNode,
+  type Dispatch,
 } from "react";
 import type { GameState, Attempt, Feedback } from "../types/mastermind";
 
@@ -10,6 +11,7 @@ interface GameContextState {
   gameState: GameState | null;
   isMyTurn: boolean;
   status: "loading" | "error" | "ready";
+  error: string | null;
 }
 
 type GameAction =
@@ -17,12 +19,14 @@ type GameAction =
   | { type: "SET_TURN"; value: boolean }
   | { type: "ADD_ATTEMPT"; value: Attempt }
   | { type: "ADD_FEEDBACK"; value: Feedback }
-  | { type: "SET_STATUS"; value: "loading" | "error" | "ready" };
+  | { type: "SET_STATUS"; value: "loading" | "error" | "ready" }
+  | { type: "SET_ERROR"; value: string };
 
 const initialState: GameContextState = {
   gameState: null,
   isMyTurn: false,
   status: "loading",
+  error: null,
 };
 
 function gameReducer(
@@ -31,7 +35,12 @@ function gameReducer(
 ): GameContextState {
   switch (action.type) {
     case "SET_GAME":
-      return { ...state, gameState: action.value, status: "ready" };
+      return {
+        ...state,
+        gameState: action.value,
+        status: "ready",
+        error: null,
+      };
     case "SET_TURN":
       return { ...state, isMyTurn: action.value };
     case "ADD_ATTEMPT":
@@ -60,13 +69,15 @@ function gameReducer(
       };
     case "SET_STATUS":
       return { ...state, status: action.value };
+    case "SET_ERROR":
+      return { ...state, status: "error", error: action.value };
     default:
       return state;
   }
 }
 
 const GameContext = createContext<
-  { state: GameContextState; dispatch: React.Dispatch<GameAction> } | undefined
+  { state: GameContextState; dispatch: Dispatch<GameAction> } | undefined
 >(undefined);
 
 export function GameProvider({ children }: { children: ReactNode }) {

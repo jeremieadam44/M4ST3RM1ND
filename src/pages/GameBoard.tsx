@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import { GameModeDiff } from "../game/constants";
 import { saveSecret, getSecret } from "../game/secretStorage";
 import { isVictoryEasy, isGameOver } from "../game/mastermindLogic";
-import { GameResult } from "./GameResult";
-import type { Color, Tips, EndData } from "../types/mastermind";
+import type { Color, Tips } from "../types/mastermind";
 
-import { mockGameStateEasy } from "../game/mockData"; // import temporaire de dev test
+import { getGame, updateGameState } from "../api/game";
+import { useSession } from "../context/AuthContext";
+import { parseGameState, serialize } from "../game/serialization";
 
 const COLORS: Color[] = [
   "red",
@@ -21,8 +22,6 @@ const COLORS: Color[] = [
 ];
 
 const TIPS: Tips[] = ["red", "white", "empty"];
-
-const CURRENT_USER_ID = 1; // dev data en dur a remove au branchement de l'api
 
 function ColorRow({ colors }: { colors: Color[] }) {
   return (
@@ -65,22 +64,58 @@ function TipsRow({ tips }: { tips: Tips[] }) {
 }
 
 export function GameBoard() {
-  const { gameId } = useParams();
+  const { gameId } = useParams<{ gameId: string }>();
+  const { user, token } = useSession();
+  const navigate = useNavigate();
+  const id = Number(gameId);
+
   const { state, dispatch } = useGame();
 
   const [guess, setGuess] = useState<Color[]>([]);
   const [feedback, setFeedback] = useState<Tips[]>([]);
   const [secret, setSecret] = useState<Color[]>([]);
-  const [endData, setEndData] = useState<EndData | null>(null);
+
+  const [sending, setSending] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const loadGame = useCallback(async () => {
+    try {
+      const game = await getGame(token, id);
+      if (game.status === "ended") {
+        navigate(`/games/${id}/result`);
+        return;
+      }
+      if (game.status === "pending") {
+        dispatch({
+          type: "SET_ERROR",
+          value: "La partie n'a pas encore commence",
+        });
+        return;
+      }
+      const gameState = parseGameState(game);
+      if (!gameState) {
+        dispatch({ type: "SET_ERROR", value: "Etat de la partir illisible" });
+        return;
+      }
+      dispatch({ type: "SET_GAME", value: gameState });
+      dispatch({ type: "SET_TURN", value: game.isYourTurn });
+    } catch (error) {
+      dispatch({
+        type: "SET_ERROR",
+        value: error instanceof Error ? error.message : "Erreur de chargement",
+      });
+    }
+  }, [token, id, navigate, dispatch]);
 
   useEffect(() => {
-    dispatch({ type: "SET_STATUS", value: "loading" });
-    const timer = setTimeout(() => {
-      dispatch({ type: "SET_GAME", value: mockGameStateEasy });
-      dispatch({ type: "SET_TURN", value: true });
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [dispatch]);
+    void loadGame();
+  }, [loadGame]);
+
+  useEffect(() => {
+    if (state.isMyTurn) return;
+    const inter = setInterval(loadGame, 3000);
+    return () => clearInterval(inter);
+  }, [state.isMyTurn, loadGame]);
 
   if (state.status === "loading")
     return (
@@ -100,13 +135,10 @@ export function GameBoard() {
         <section className="game-board">Aucune partir trouvée.</section>
       </main>
     );
-  if (endData) {
-    return <GameResult endData={endData} currentUserId={CURRENT_USER_ID} />;
-  }
 
   const { difficulty, attempts, masterId } = state.gameState;
   const mode = GameModeDiff[difficulty];
-  const isCodemaker = masterId === CURRENT_USER_ID;
+  const isCodemaker = masterId === user.id;
 
   const lastAttempt = attempts[attempts.length - 1];
   const waitingForFeddback = Boolean(lastAttempt && !lastAttempt.feedback);
@@ -119,11 +151,27 @@ export function GameBoard() {
     setSecret([...secret, color]);
   }
 
-  function validateSecret() {
-    if (!gameId) return;
+  async function validateSecret() {
+    if (!gameId || !state.gameState) return;
     saveSecret(gameId, secret);
-    setSecret([]);
-    dispatch({ type: "SET_TURN", value: false });
+    setSending(true);
+    // setSecret([]);
+    // dispatch({ type: "SET_TURN", value: false });
+    setActionError(null);
+    try {
+      await updateGameState(token, id, {
+        state: serialize(state.gameState),
+        currentTurnUserId: state.gameState.guesserId,
+      });
+      setSecret([]);
+      await loadGame();
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Echec de l'envoie",
+      );
+    } finally {
+      setSending(false);
+    }
   }
 
   function guessColor(color: Color) {
@@ -131,10 +179,31 @@ export function GameBoard() {
     setGuess([...guess, color]);
   }
 
-  function validateGuess() {
-    dispatch({ type: "ADD_ATTEMPT", value: { guess: guess } });
-    setGuess([]);
-    dispatch({ type: "SET_TURN", value: false });
+  async function validateGuess() {
+    // dispatch({ type: "ADD_ATTEMPT", value: { guess: guess } });
+    // setGuess([]);
+    // dispatch({ type: "SET_TURN", value: false });
+    if (!state.gameState) return;
+    const update = {
+      ...state.gameState,
+      attempts: [...state.gameState.attempts, { guess }],
+    };
+    setSending(true);
+    setActionError(null);
+    try {
+      await updateGameState(token, id, {
+        state: serialize(update),
+        currentTurnUserId: state.gameState.masterId,
+      });
+      setGuess([]);
+      await loadGame();
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Echec de l'envoie",
+      );
+    } finally {
+      setSending(false);
+    }
   }
 
   function advising(tip: Tips) {
@@ -142,24 +211,52 @@ export function GameBoard() {
     setFeedback([...feedback, tip]);
   }
 
-  function validteAdvising() {
+  async function validteAdvising() {
     if (!lastAttempt || !state.gameState) return;
 
     const completedFeedback = { pose: feedback };
-    dispatch({ type: "ADD_FEEDBACK", value: completedFeedback });
-
+    // dispatch({ type: "ADD_FEEDBACK", value: completedFeedback });
     const finishedAttempt = { ...lastAttempt, feedback: completedFeedback };
-    const won = isVictoryEasy(finishedAttempt);
-    const lost = !won && isGameOver(state.gameState, mode.maxAttempts);
 
-    if (won || lost) {
-      setEndData({
-        revealedCode: localSecret ?? [],
-        winnerId: won ? state.gameState.guesserId : state.gameState.masterId,
+    const attempts = [
+      ...state.gameState.attempts.slice(0, -1),
+      finishedAttempt,
+    ];
+    const update = { ...state.gameState, attempts };
+
+    const won = isVictoryEasy(finishedAttempt);
+    const lost = !won && isGameOver(update, mode.maxAttempts);
+
+    setSending(true);
+    setActionError(null);
+    try {
+      if (won || lost) {
+        const endData = {
+          revealedCode: localSecret ?? [],
+          winnerId: won ? state.gameState.guesserId : state.gameState.masterId,
+        };
+        await updateGameState(token, id, {
+          state: serialize(update),
+          ended: true,
+          endData: serialize(endData),
+        });
+        navigate(`/games/${id}/result`);
+        return;
+      }
+      await updateGameState(token, id, {
+        state: serialize(update),
+        currentTurnUserId: state.gameState.guesserId,
       });
+      setFeedback([]);
+      await loadGame();
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Echec de l'envoie",
+      );
+    } finally {
+      setSending(false);
     }
-    setFeedback([]);
-    dispatch({ type: "SET_TURN", value: false });
+    // dispatch({ type: "SET_TURN", value: false });
   }
 
   return (
@@ -210,10 +307,10 @@ export function GameBoard() {
               Votre Code : <ColorRow colors={secret} />
             </div>
             <button
-              disabled={secret.length !== mode.guessSpots}
+              disabled={secret.length !== mode.guessSpots || sending}
               onClick={validateSecret}
             >
-              Valider le code
+              {sending ? "Envoie......" : "Valider le code"}
             </button>
           </div>
         )}
@@ -241,16 +338,17 @@ export function GameBoard() {
               Selection : <ColorRow colors={guess} />
             </div>
             <button
-              disabled={guess.length !== mode.guessSpots}
+              disabled={guess.length !== mode.guessSpots || sending}
               onClick={validateGuess}
             >
-              Valider la Propale
+              {sending ? "Envoie......" : "Valider la Propale"}
             </button>
           </div>
         )}
         {state.isMyTurn && isCodemaker && waitingForFeddback && lastAttempt && (
           <div>
-            <h2>Definissez les indices : {lastAttempt.guess.join(", ")}</h2>
+            <h2>Definissez les indices : </h2>
+            <ColorRow colors={lastAttempt.guess} />
             <div>
               Votre code est :{" "}
               {localSecret ? <ColorRow colors={localSecret} /> : "introuvable"}
@@ -275,13 +373,14 @@ export function GameBoard() {
               Indices : <TipsRow tips={feedback} />
             </div>
             <button
-              disabled={feedback.length !== mode.guessSpots}
+              disabled={feedback.length !== mode.guessSpots || sending}
               onClick={validteAdvising}
             >
-              Valider les indices
+              {sending ? "Envoie......" : "Valider les indices"}
             </button>
           </div>
         )}
+        {actionError && <p style={{ color: "#b91c1c" }}>{actionError}</p>}
       </section>
     </main>
   );
