@@ -472,6 +472,7 @@ button {
   color: white;
   justify-self: center;
   padding: 10px 18px;
+  margin-top: 5px;
 }
 
 .game-board button:disabled {
