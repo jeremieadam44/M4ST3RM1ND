@@ -35,8 +35,6 @@ Les difficultés disponibles sont définies dans
 | Difficulté | Emplacements | Tentatives |
 | ---------- | -----------: | ---------: |
 | Facile     |            4 |         12 |
-| Moyenne    |            6 |         12 |
-| Difficile  |            6 |         10 |
 
 Les huit couleurs disponibles sont `red`, `blue`, `green`, `yellow`, `cyan`,
 `magenta`, `orange` et `purple`.
@@ -86,18 +84,11 @@ Dans un second terminal :
 
 ```sh
 cd M4ST3RM1ND
-npm install
-npm run dev
+deno install
+deno task dev
 ```
 
-Vite affiche généralement l'application sur `http://localhost:5173`.
-
-L'URL du backend peut être configurée dans un fichier `.env.local` placé à la
-racine du frontend :
-
-```dotenv
-VITE_API_URL=http://localhost:8000
-```
+Vite affiche généralement l'application sur `http://127.0.0.1:5173`.
 
 Si la variable est absente, cette même URL est utilisée par défaut.
 
